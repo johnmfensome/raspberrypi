@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 #
-# Setup bash profile configuration
+# Setup basic bash profile config files and install packages
 # curl -sSfL https://raw.githubusercontent.com/johnmfensome/raspberrypi/main/scripts/raspberrypi-first-setup.sh | bash
 
 ######## VARIABLES #########
-setupVarsFile="setupVars.conf"
 tempsetupVarsFile="/tmp/setupVars.conf"
-GITBIN="/usr/bin/git"
 
 ######## PKG Vars ########
 PKG_MANAGER="apt-get"
@@ -16,19 +14,13 @@ PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst ||
 CHECK_PKG_INSTALLED='dpkg-query -s'
 
 # Dependencies that are required by the script,
-BASE_DEPS=(bash-completion certbot curl dnsutils docker fontconfig git gpg grep grepcidr jq coreutils python3 iptables net-tools nfs-common openssl pv sed tar telnet tree vim whiptail wireshark)
-
-######## Undocumented Flags. Shhh ########
-runUnattended=false
-skipSpaceCheck=false
-reconfigure=false
-showUnsupportedNICs=false
+PACKAGE_LIST=(bash-completion certbot curl dnsutils docker fontconfig git gpg grep grepcidr jq coreutils python3 iptables net-tools nfs-common openssl pv sed tar telnet tree vim whiptail wireshark)
 
 # Dependencies that where actually installed by the script. For example if the
 # script requires grep and dnsutils but dnsutils is already installed, we save
 # grep here. This way when uninstalling PiVPN we won't prompt to remove packages
 # that may have been installed by the user for other reasons
-INSTALLED_PACKAGES=()
+INSTALLED_PACKAGE_LIST=()
 
 ######## SCRIPT ########
 
@@ -47,20 +39,22 @@ c=$((c < 70 ? 70 : c))
 # Override localization settings so the output is in English language.
 export LC_ALL=C
 
-main() {
+_main() {
   # Pre install checks and configs
-  distroCheck
-  rootCheck
-  installDependentPackages BASE_DEPS[@]
+  _distro_check
+  _root_check
+  _update_cache
+  _notify
+  _install_packages PACKAGE_LIST[@]
 }
 
 ####### FUNCTIONS ##########
 
-err() {
+_error() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
 }
 
-rootCheck() {
+_root_check() {
   ######## FIRST CHECK ########
   # Must be root to install
   echo ":::"
@@ -76,13 +70,13 @@ rootCheck() {
       export SUDO="sudo"
       export SUDOE="sudo -E"
     else
-      err "::: Please install sudo or run this as root."
+      _error "::: Please install sudo or run this as root."
       exit 1
     fi
   fi
 }
 
-installDependentPackages() {
+_install_packages() {
   # Install packages passed via argument array
   # No spinner - conflicts with set -e
   local FAILED=0
@@ -127,7 +121,7 @@ installDependentPackages() {
         echo ":::    Package ${i} successfully installed!"
         # Add this package to the total list of packages that were actually
         # installed by the script
-        INSTALLED_PACKAGES+=("${i}")
+        INSTALLED_PACKAGE_LIST+=("${i}")
       else
         echo ":::    Failed to install ${i}!"
         ((FAILED++))
@@ -137,7 +131,7 @@ installDependentPackages() {
         echo ":::    Package ${i} successfully installed!"
         # Add this package to the total list of packages that were actually
         # installed by the script
-        INSTALLED_PACKAGES+=("${i}")
+        INSTALLED_PACKAGE_LIST+=("${i}")
       else
         echo ":::    Failed to install ${i}!"
         ((FAILED++))
@@ -147,7 +141,7 @@ installDependentPackages() {
         echo ":::    Package ${i} successfully installed!"
         # Add this package to the total list of packages that were actually
         # installed by the script
-        INSTALLED_PACKAGES+=("${i}")
+        INSTALLED_PACKAGE_LIST+=("${i}")
       else
         echo ":::    Failed to install ${i}!"
         ((FAILED++))
@@ -162,11 +156,8 @@ installDependentPackages() {
   fi
 }
 
-distroCheck() {
+_distro_check() {
   # Check for supported distribution
-  # Compatibility, functions to check for supported OS
-  # distroCheck, maybeOSSupport, noOSSupport
-  # if lsb_release command is on their system
   if command -v lsb_release > /dev/null; then
     PLAT="$(lsb_release -si)"
     OSCN="$(lsb_release -sc)"
@@ -218,17 +209,17 @@ distroCheck() {
   } > "${tempsetupVarsFile}"
 }
 
-updatePackageCache() {
+_update_cache() {
   # update package lists
   echo ":::"
   echo -e "::: Package Cache update is needed, running ${UPDATE_PKG_CACHE} ..."
   # shellcheck disable=SC2086
   ${SUDO} ${UPDATE_PKG_CACHE} &> /dev/null &
-  spinner "$!"
+  _spinner "$!"
   echo " done!"
 }
 
-notifyPackageUpdatesAvailable() {
+_notify() {
   # Let user know if they have outdated packages on their system and
   # advise them to run a package update at soonest possible.
   echo ":::"
@@ -246,7 +237,7 @@ notifyPackageUpdatesAvailable() {
   fi
 }
 
-spinner() {
+_spinner() {
   local pid="${1}"
   local delay=0.50
   local spinstr='/-\|'
@@ -262,4 +253,4 @@ spinner() {
   printf "    \\b\\b\\b\\b"
 }
 
-main "$@"
+_main "$@"
