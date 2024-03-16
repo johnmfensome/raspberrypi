@@ -3,6 +3,11 @@
 # Setup bash profile configuration
 # curl -sSfL https://raw.githubusercontent.com/johnmfensome/raspberrypi/main/scripts/raspberrypi-first-setup.sh | bash
 
+######## VARIABLES #########
+setupVarsFile="setupVars.conf"
+tempsetupVarsFile="/tmp/setupVars.conf"
+GITBIN="/usr/bin/git"
+
 ######## PKG Vars ########
 PKG_MANAGER="apt-get"
 UPDATE_PKG_CACHE="${PKG_MANAGER} update -y"
@@ -11,7 +16,7 @@ PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst ||
 CHECK_PKG_INSTALLED='dpkg-query -s'
 
 # Dependencies that are required by the script,
-BASE_DEPS=(bash-completions certbot curl dnsutils docker fontconfig git gpg grep grepcidr jq coreutils python-minimal iptables iptables6 net-tools nfs-common openssl pv sed tar telnet tree vim whiptail wireshark)
+BASE_DEPS=(bash-completion certbot curl dnsutils docker fontconfig git gpg grep grepcidr jq coreutils python3 iptables net-tools nfs-common openssl pv sed tar telnet tree vim whiptail wireshark)
 
 ######## Undocumented Flags. Shhh ########
 runUnattended=false
@@ -240,3 +245,21 @@ notifyPackageUpdatesAvailable() {
     echo ":::"
   fi
 }
+
+spinner() {
+  local pid="${1}"
+  local delay=0.50
+  local spinstr='/-\|'
+
+  while ps a | awk '{print $1}' | grep -q "${pid}"; do
+    local temp="${spinstr#?}"
+    printf " [%c]  " "${spinstr}"
+    local spinstr="${temp}${spinstr%"$temp"}"
+    sleep "${delay}"
+    printf "\\b\\b\\b\\b\\b\\b"
+  done
+
+  printf "    \\b\\b\\b\\b"
+}
+
+main "$@"
