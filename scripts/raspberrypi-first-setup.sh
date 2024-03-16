@@ -14,7 +14,7 @@ PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst ||
 CHECK_PKG_INSTALLED='dpkg-query -s'
 
 # Dependencies that are required by the script,
-PACKAGE_LIST=(bash-completion certbot curl dnsutils docker fontconfig git gpg grep grepcidr jq coreutils python3 iptables net-tools nfs-common openssl pv sed tar tcpdump telnet tree vim whiptail wireshark)
+PACKAGE_LIST=(bash-completion certbot curl dnsutils docker fontconfig git gpg grep grepcidr jq coreutils python3 iptables mlocate netcat-openbsd net-tools nfs-common openssl pv sed tar tcpdump telnet tree vim whiptail wireshark)
 
 # Dependencies that where actually installed by the script. For example if the
 # script requires grep and dnsutils but dnsutils is already installed, we save
